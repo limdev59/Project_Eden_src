@@ -161,6 +161,36 @@ void AGP_PlayerController::Input_ToggleSprint()
 	}
 }
 
+void AGP_PlayerController::Input_SprintPressed()
+{
+	if (AGP_PlayerCharacter* PC = Cast<AGP_PlayerCharacter>(GetPawn()))
+	{
+		if (bIsSprintToggle)
+		{
+			// 토글 모드: 누를 때마다 상태 반전
+			PC->ToggleSprinting();
+		}
+		else
+		{
+			// 홀드 모드: 누르면 달리기 시작
+			PC->StartSprinting();
+		}
+	}
+}
+
+void AGP_PlayerController::Input_SprintReleased()
+{
+	if (AGP_PlayerCharacter* PC = Cast<AGP_PlayerCharacter>(GetPawn()))
+	{
+		if (!bIsSprintToggle)
+		{
+			// 홀드 모드일 때만: 키를 떼면 달리기 멈춤
+			PC->StopSprinting();
+		}
+		// 토글 모드일 때는 키를 떼도 아무 행동 안 함 (달리기 유지)
+	}
+}
+
 void AGP_PlayerController::Input_Dash()
 {
 	if (AGP_PlayerCharacter* PlayerCharacter = Cast<AGP_PlayerCharacter>(GetCharacter()))
