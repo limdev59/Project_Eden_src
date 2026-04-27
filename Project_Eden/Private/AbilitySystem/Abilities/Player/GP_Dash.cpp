@@ -8,11 +8,7 @@
 UGP_Dash::UGP_Dash()
 {
 	// 어빌리티 고유 식별 태그
-	//AbilityTags.AddTag(GPTags::Ability::Movement::Dash);
-	FGameplayTagContainer AssetTagsContainer;
-	AssetTagsContainer.AddTag(GPTags::Ability::Movement::Dash);
-	SetAssetTags(AssetTagsContainer);
-	
+	AbilityTags.AddTag(GPTags::Ability::Movement::Dash);
 	ActivationOwnedTags.AddTag(GPTags::State::Movement::Dash);       // 대시 상태 
 	// ActivationOwnedTags.AddTag(GPTags::State::Status::Unstoppable);	// 저지불가 상태
 	// ActivationOwnedTags.AddTag(GPTags::State::Status::Invincible);	// 무적 상태
