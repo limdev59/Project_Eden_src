@@ -88,7 +88,7 @@ void AGP_PlayerController::SetupInputComponent()
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ThisClass::Input_StopJump);
 	}
 
-	// --- [상태 전환 (토글 및 돌진)] ---
+	// --- [상태 전환 ] ---
 	EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Started, this, &ThisClass::Input_SprintPressed);
 	EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Completed, this, &ThisClass::Input_SprintReleased);
 	if (DashAction)   EnhancedInputComponent->BindAction(DashAction,   ETriggerEvent::Started, this, &ThisClass::Input_Dash);
@@ -148,9 +148,6 @@ void AGP_PlayerController::Input_ToggleSprint()
 
 void AGP_PlayerController::Input_SprintPressed()
 {
-	// 화면에 파란색 글씨로 현재 세팅값을 띄웁니다.
-	GEngine->AddOnScreenDebugMessage(1, 2.f, FColor::Cyan, FString::Printf(TEXT("달리기 누름! 토글 모드인가?: %s"), bIsSprintToggle ? TEXT("True") : TEXT("False")));
-
 	if (AGP_PlayerCharacter* PC = Cast<AGP_PlayerCharacter>(GetPawn()))
 	{
 		if (bIsSprintToggle) PC->ToggleSprinting();
@@ -160,9 +157,6 @@ void AGP_PlayerController::Input_SprintPressed()
 
 void AGP_PlayerController::Input_SprintReleased()
 {
-	// 화면에 빨간색 글씨로 떼었음을 띄웁니다.
-	GEngine->AddOnScreenDebugMessage(2, 2.f, FColor::Red, TEXT("달리기 뗌! 이벤트 정상 호출됨"));
-
 	if (AGP_PlayerCharacter* PC = Cast<AGP_PlayerCharacter>(GetPawn()))
 	{
 		if (!bIsSprintToggle) PC->StopSprinting();
