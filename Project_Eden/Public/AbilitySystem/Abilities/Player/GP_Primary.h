@@ -1,4 +1,5 @@
-﻿#pragma once
+﻿// GP_Primary.h 수정본
+#pragma once
 
 #include "CoreMinimal.h"
 #include "AbilitySystem/Abilities/GP_GameplayAbility.h"
@@ -6,7 +7,6 @@
 
 class UAnimMontage;
 class UAbilityTask_PlayMontageAndWait;
-class UAbilityTask_WaitInputPress;
 class UAbilityTask_WaitGameplayEvent;
 
 UCLASS()
@@ -16,7 +16,10 @@ class PROJECT_EDEN_API UGP_Primary : public UGP_GameplayAbility
 
 public:
 	UGP_Primary();
+    
+    // ActivateAbility와 함께 InputPressed 오버라이드 추가
 	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
+    virtual void InputPressed(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) override;
 
 protected:
 	UPROPERTY(EditDefaultsOnly, Category = "GAS|Effects")
@@ -43,9 +46,6 @@ private:
 	TObjectPtr<UAbilityTask_PlayMontageAndWait> MontageTask;
 
 	UPROPERTY()
-	TObjectPtr<UAbilityTask_WaitInputPress> InputTask;
-
-	UPROPERTY()
 	TObjectPtr<UAbilityTask_WaitGameplayEvent> WaitHitTask;
 
 	UPROPERTY()
@@ -57,9 +57,6 @@ private:
 	void StartComboSequence();
 	int32 GetNextComboIndex(int32 MaxComboCount);
 	void ClearExistingTasks();
-
-	UFUNCTION()
-	void OnInputPressedDuringCombo(float TimeWaited);
 
 	UFUNCTION()
 	void OnMontageCompleted();

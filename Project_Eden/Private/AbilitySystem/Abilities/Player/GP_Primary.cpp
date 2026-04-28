@@ -6,6 +6,7 @@
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Abilities/Tasks/AbilityTask_WaitInputPress.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
+#include "Player/GP_PlayerController.h"
 #include "Utils/GP_BlueprintLibrary.h"
 
 UGP_Primary::UGP_Primary()
@@ -27,6 +28,14 @@ void UGP_Primary::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const
 	StartComboSequence();
 }
 
+void UGP_Primary::InputPressed(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
+{
+	Super::InputPressed(Handle, ActorInfo, ActivationInfo);
+
+	// 선입력 허용: 애니메이션 도중 언제 클릭하든 다음 공격을 예약합니다.
+	UE_LOG(LogTemp, Warning, TEXT("UGP_Primary : InputPressed Called - Next Attack Queued!"));
+	bHasQueuedNextAttack = true;
+}
 void UGP_Primary::StartComboSequence()
 {
 	bHasQueuedNextAttack = false;
@@ -57,6 +66,25 @@ void UGP_Primary::StartComboSequence()
 		EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
 		return;
 	}
+	
+	if (AGP_PlayerController* PCtrl = Cast<AGP_PlayerController>(PC->GetController()))
+	{
+		FVector2D MoveInput = PCtrl->GetCurrentMoveInput();
+		if (!MoveInput.IsNearlyZero())
+		{
+			const FRotator YawRotation(0.f, PCtrl->GetControlRotation().Yaw, 0.f);
+			const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
+			const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+
+			// 2D 입력 벡터를 3D 월드 방향 벡터로 변환
+			FVector DesiredDirection = (ForwardDirection * MoveInput.Y) + (RightDirection * MoveInput.X);
+			DesiredDirection.Z = 0.0f; 
+			DesiredDirection.Normalize();
+
+			// 캐릭터의 방향을 즉시 변경
+			PC->SetActorRotation(DesiredDirection.Rotation());
+		}
+	}
 
 	ClearExistingTasks();
 
@@ -72,10 +100,6 @@ void UGP_Primary::StartComboSequence()
 	WaitEndTask->EventReceived.AddDynamic(this, &ThisClass::OnActionEndEventReceived);
 	WaitEndTask->ReadyForActivation();
 
-	InputTask = UAbilityTask_WaitInputPress::WaitInputPress(this, false);
-	InputTask->OnPress.AddDynamic(this, &ThisClass::OnInputPressedDuringCombo);
-	InputTask->ReadyForActivation();
-
 	MontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(this, NAME_None, MontageToPlay, 1.0f);
 	MontageTask->OnCompleted.AddDynamic(this, &ThisClass::OnMontageCompleted);
 	MontageTask->OnInterrupted.AddDynamic(this, &ThisClass::OnMontageInterrupted);
@@ -85,7 +109,6 @@ void UGP_Primary::StartComboSequence()
 void UGP_Primary::ClearExistingTasks()
 {
 	if (MontageTask) { MontageTask->EndTask(); MontageTask = nullptr; }
-	if (InputTask) { InputTask->EndTask(); InputTask = nullptr; }
 	if (WaitHitTask) { WaitHitTask->EndTask(); WaitHitTask = nullptr; }
 	if (WaitComboTask) { WaitComboTask->EndTask(); WaitComboTask = nullptr; }
 	if (WaitEndTask) { WaitEndTask->EndTask(); WaitEndTask = nullptr; }
@@ -97,27 +120,16 @@ int32 UGP_Primary::GetNextComboIndex(int32 MaxComboCount)
 	return (CurrentComboIndex + 1) % MaxComboCount;
 }
 
-void UGP_Primary::OnInputPressedDuringCombo(float TimeWaited)
-{
-	if (bIsComboWindowOpen)
-	{
-		bHasQueuedNextAttack = true;
-	}
-	else
-	{
-		InputTask = UAbilityTask_WaitInputPress::WaitInputPress(this, false);
-		InputTask->OnPress.AddDynamic(this, &ThisClass::OnInputPressedDuringCombo);
-		InputTask->ReadyForActivation();
-	}
-}
 
 void UGP_Primary::OnComboEnableEventReceived(FGameplayEventData Payload)
 {
+	UE_LOG(LogTemp, Warning, TEXT("UGP_Primary : OnComboEnableEventReceived Called - Combo Window Open"));
 	bIsComboWindowOpen = true;
 }
 
 void UGP_Primary::OnActionEndEventReceived(FGameplayEventData Payload)
 {
+	UE_LOG(LogTemp, Warning, TEXT("UGP_Primary : OnActionEndEventReceived Called - bHasQueuedNextAttack : %s"), bHasQueuedNextAttack ? TEXT("True") : TEXT("False"));
 	AGP_PlayerCharacter* PC = Cast<AGP_PlayerCharacter>(GetAvatarActorFromActorInfo());
 	if (!IsValid(PC) || !IsValid(PC->GetAnimationSet()))
 	{
