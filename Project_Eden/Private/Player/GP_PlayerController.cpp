@@ -10,7 +10,6 @@
 #include "EnhancedInputSubsystems.h"
 #include "GameFramework/Character.h"
 #include "GameplayTags/GP_Tags.h"
-#include "InputCoreTypes.h"
 #include "Kismet/GameplayStatics.h"
 #include "Logging/LogMacros.h"
 #include "UI/GP_PlayerHUDWidget.h"
@@ -106,13 +105,6 @@ void AGP_PlayerController::SetupInputComponent()
 void AGP_PlayerController::Input_Move(const FInputActionValue& Value)
 {
 	if (!IsValid(GetPawn())) return;
-	if (const AGP_PlayerCharacter* PlayerCharacter = Cast<AGP_PlayerCharacter>(GetCharacter()))
-	{
-		if (PlayerCharacter->IsDashing() || PlayerCharacter->IsPrimaryAttacking() || PlayerCharacter->IsSprintExitControlLocked())
-		{
-			return;
-		}
-	}
 
 	const FVector2D MovementVector = Value.Get<FVector2D>();
 
@@ -136,14 +128,6 @@ void AGP_PlayerController::Input_Look(const FInputActionValue& Value)
 void AGP_PlayerController::Input_Jump()
 {
 	if (!IsValid(GetCharacter())) return;
-	if (const AGP_PlayerCharacter* PlayerCharacter = Cast<AGP_PlayerCharacter>(GetCharacter()))
-	{
-		if (PlayerCharacter->IsDashing() || PlayerCharacter->IsPrimaryAttacking() || PlayerCharacter->IsSprintExitControlLocked())
-		{
-			return;
-		}
-	}
-
 	GetCharacter()->Jump();
 }
 
@@ -164,42 +148,30 @@ void AGP_PlayerController::Input_ToggleSprint()
 
 void AGP_PlayerController::Input_SprintPressed()
 {
+	// 화면에 파란색 글씨로 현재 세팅값을 띄웁니다.
+	GEngine->AddOnScreenDebugMessage(1, 2.f, FColor::Cyan, FString::Printf(TEXT("달리기 누름! 토글 모드인가?: %s"), bIsSprintToggle ? TEXT("True") : TEXT("False")));
+
 	if (AGP_PlayerCharacter* PC = Cast<AGP_PlayerCharacter>(GetPawn()))
 	{
-		if (bIsSprintToggle)
-		{
-			// 토글 모드: 누를 때마다 상태 반전
-			PC->ToggleSprinting();
-		}
-		else
-		{
-			// 홀드 모드: 누르면 달리기 시작
-			PC->StartSprinting();
-		}
+		if (bIsSprintToggle) PC->ToggleSprinting();
+		else PC->StartSprinting();
 	}
 }
 
 void AGP_PlayerController::Input_SprintReleased()
 {
+	// 화면에 빨간색 글씨로 떼었음을 띄웁니다.
+	GEngine->AddOnScreenDebugMessage(2, 2.f, FColor::Red, TEXT("달리기 뗌! 이벤트 정상 호출됨"));
+
 	if (AGP_PlayerCharacter* PC = Cast<AGP_PlayerCharacter>(GetPawn()))
 	{
-		if (!bIsSprintToggle)
-		{
-			// 홀드 모드일 때만: 키를 떼면 달리기 멈춤
-			PC->StopSprinting();
-		}
-		// 토글 모드일 때는 키를 떼도 아무 행동 안 함 (달리기 유지)
+		if (!bIsSprintToggle) PC->StopSprinting();
 	}
 }
-
 void AGP_PlayerController::Input_Dash()
 {
 	if (AGP_PlayerCharacter* PlayerCharacter = Cast<AGP_PlayerCharacter>(GetCharacter()))
 	{
-		if (PlayerCharacter->IsSprintExitControlLocked())
-		{
-			return;
-		}
 
 		if (PlayerCharacter->TryPerformDash())
 		{
