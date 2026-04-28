@@ -99,10 +99,15 @@ int32 UGP_Primary::GetNextComboIndex(int32 MaxComboCount)
 
 void UGP_Primary::OnInputPressedDuringCombo(float TimeWaited)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red, TEXT("입력 감지됨!"));
 	if (bIsComboWindowOpen)
 	{
 		bHasQueuedNextAttack = true;
+	}
+	else
+	{
+		InputTask = UAbilityTask_WaitInputPress::WaitInputPress(this, false);
+		InputTask->OnPress.AddDynamic(this, &ThisClass::OnInputPressedDuringCombo);
+		InputTask->ReadyForActivation();
 	}
 }
 
